@@ -12,13 +12,13 @@
 
 // Handling the first signal
 void handleSig1() {
-    printf("- Email notification is waiting.\n");
+    printf(" - Email notification is waiting.\n");
     printf("[Outcome:] The TA announced: Everyone get 100 on the exercise!\n");
 }
 
 // Handling the second signal
 void handleSig2() {
-    printf("- You have a reminder to pick up your delivery.\n");
+    printf(" - You have a reminder to pick up your delivery.\n");
     printf("[Outcome:] You picked it up just in time.\n");
 }
 
@@ -42,9 +42,8 @@ void inputResponse(char *c) {
 void focusModeRound(int duration) {
     char chr;
     for (int i = 0; i < duration; ++i) {
-        printf("Entering Focus Mode. All distractions are blocked.\n "
-               "══════════════════════════════════════════════\n"
-               "                Focus Round %d\n"
+        printf("══════════════════════════════════════════════\n"
+               "                Focus Round %d                \n"
                "──────────────────────────────────────────────\n", (i + 1));
         printf("Simulate a distraction:\n"
                "  1 = Email notification\n"
@@ -110,6 +109,7 @@ void runFocusMode(int numOfRounds, int duration) {
     // main focus mode loop
     for (int i = 0; i < numOfRounds; ++i) {
         // Blocking the three defined signals and setting the mask on
+        printf("\"Entering Focus Mode. All distractions are blocked.\n");
         focusModeRound(duration);
         printf("──────────────────────────────────────────────\n"
                "        Checking pending distractions...\n"
@@ -119,4 +119,5 @@ void runFocusMode(int numOfRounds, int duration) {
                "             Back to Focus Mode.\n"
                "══════════════════════════════════════════════\n");
     }
+    printf("Focus Mode complete. All distractions are now unblocked.\n");
 }
