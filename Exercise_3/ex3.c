@@ -4,6 +4,7 @@
 #include "Focus-Mode.c"
 #include "CPU-Scheduler.c"
 
+
 int main(int argc, char *argv[]) {
     if (argc != 4) {
         printf("Usage: %s <Focus-Mode/CPU-Schedule> <Num-Of-Rounds/Processes.csv> <Round-Duration/Time-Quantum>",
@@ -11,7 +12,7 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
 
-    if (!strcmp(argv[1], "Focus-Mode") && !strcmp(argv[1], "CPU-Scheduler")) {
+    if (strcmp(argv[1], "Focus-Mode") != 0 && strcmp(argv[1], "CPU-Scheduler") != 0) {
         printf("Usage: %s <Focus-Mode/CPU-Schedule> <Num-Of-Rounds/Processes.csv> <Round-Duration/Time-Quantum>",
                argv[0]);
         exit(0);
