@@ -12,6 +12,8 @@
 #define MAX_PROCESSES 1000
 #define FILE_VARIABLES 5
 
+int timer = 0;
+
 // A struct for processes
 typedef struct {
     char name[MAX_NAME];
@@ -22,33 +24,71 @@ typedef struct {
 } Process;
 
 // The first come, first served scheduler system implementation
-void FCFS(char ***processMatrix) {
+void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
+    // Setting up variables to use later, live processes is the amount of processes which
+    // Have not finished yet
+    int liveProcesses = processNum;
+    // Arrival time will store the minimum arrival time that we found in the process array
+    int arrivalTime = INT_MAX;
+    // Current process will store that process that is being run right now
+    int currentProcess = 0;
+    // These two arrays will store the bursts and arrival time of each process, so that we
+    // Will be able to change them without hurting the original collected data
+    int arrivalArr[processNum];
+    int burstArr[processNum];
 
+    // Setting the arrays to have their supposed values
+    for (int i = 0; i < processNum; ++i) {
+        arrivalArr[i] = array[i].arrival;
+        burstArr[i] = array[i].burst;
+    }
+
+    // While we still haven't finished all the processes
+    while (liveProcesses > 0) {
+        // Finding the process which arrived the earliest
+        for (int i = 0; i < processNum; ++i) {
+            if (arrivalArr[i] < arrivalTime) {
+                arrivalTime = arrivalArr[i];
+                currentProcess = i;
+            }
+        }
+        // If we finished running the process, set its arrival time to be the maximum so that
+        // We don't run it again
+        if (burstArr[currentProcess] == 0) {
+            arrivalTime = INT_MAX;
+            arrivalArr[currentProcess] = INT_MAX;
+            liveProcesses--;
+        }
+    }
+    timer = 0;
 }
 
 // The shortest job first scheduler system implementation
-void SJF(char ***processMatrix) {
+void SJF(Process array[MAX_DESCRIPTION], int processNum) {
 
 }
 
 // The priority scheduler system implementation
-void priority(char ***processMatrix) {
+void priority(Process array[MAX_DESCRIPTION], int processNum) {
 
 }
 
 // The Round Robin scheduler system implementation
-void roundRobin(char ***processMatrix, int quantum) {
+void roundRobin(Process array[MAX_DESCRIPTION], int processNum, int quantum) {
 
 }
 
 // The function that will read the given CSV, and send it back as a matrix
-void readCSV(FILE** csvFile, Process array[MAX_DESCRIPTION]) {
+int readCSV(FILE** csvFile, Process array[MAX_DESCRIPTION]) {
     char line[MAX_LINE_LENGTH];
     char *token;
     int i = 0;
+
     // Getting rid of the first two lines since they're useless
+    //TODO: DELETE THOSE TWO LINES LATER, THEY'RE THERE ONLY FOR TESTING
     fgets(line, sizeof(line), *csvFile);
     fgets(line, sizeof(line), *csvFile);
+
     // Setting the process array
     while (fgets(line, sizeof(line), *csvFile) != NULL) {
         // Setting the name
@@ -72,21 +112,18 @@ void readCSV(FILE** csvFile, Process array[MAX_DESCRIPTION]) {
 
         i++;
     }
+    return i;
 }
 
 void runCPUScheduler(char* processesCsvFilePath, int timeQuantum) {
+    // Opening the file
     FILE *dataFile = fopen(processesCsvFilePath, "r");
+    // Creating an array of processes
     Process processArr[MAX_PROCESSES];
-    readCSV(&dataFile, processArr);
-    for (int i = 0; i < MAX_PROCESSES; ++i) {
-        if (strcmp(processArr[i].name, "") == 0) {
-            break;
-        }
-        printf("name: %s\n"
-               "desc: %s\n"
-               "arrival time: %d\n"
-               "burst time: %d\n"
-               "priority: %d\n\n", processArr[i].name, processArr[i].desc, processArr[i].arrival,
-               processArr[i].burst, processArr[i].priority);
-    }
+    // Saving all processes in the process array, and saving the total amount of processes
+    int processNum = readCSV(&dataFile, processArr);
+    FCFS(processArr, processNum);
+    SJF(processArr, processNum);
+    priority(processArr, processNum);
+    roundRobin(processArr, processNum, timeQuantum);
 }
