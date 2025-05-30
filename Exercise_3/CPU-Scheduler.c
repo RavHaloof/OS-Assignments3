@@ -23,6 +23,22 @@ typedef struct {
     int priority;
 } Process;
 
+void blockSignalsExceptAlarm() {
+    sigset_t set;
+    sigfillset(&set);
+    sigdelset(&set, SIGALRM);
+    sigprocmask(SIG_SET, &set, NULL);
+}
+
+void simulateRun(Process p) {
+    if (fork() == 0) {
+        alarm(p.burst);
+        pause();
+        printf("%d → %d: %s Running %s.", timer, (timer + p.burst), p.name, p.desc);
+    }
+    timer += p.burst;
+}
+
 // The first come, first served scheduler system implementation
 void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
     // Setting up variables to use later, live processes is the amount of processes which
@@ -32,15 +48,13 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
     int arrivalTime = INT_MAX;
     // Current process will store that process that is being run right now
     int currentProcess = 0;
-    // These two arrays will store the bursts and arrival time of each process, so that we
-    // Will be able to change them without hurting the original collected data
+    // This array will store the arrival time of each process, so that we
+    // Will be able to change it without hurting the original collected data
     int arrivalArr[processNum];
-    int burstArr[processNum];
 
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
         arrivalArr[i] = array[i].arrival;
-        burstArr[i] = array[i].burst;
     }
 
     // While we still haven't finished all the processes
@@ -52,13 +66,11 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
                 currentProcess = i;
             }
         }
-        // If we finished running the process, set its arrival time to be the maximum so that
+        // Once we finished running the process, set its arrival time to be the maximum so that
         // We don't run it again
-        if (burstArr[currentProcess] == 0) {
-            arrivalTime = INT_MAX;
-            arrivalArr[currentProcess] = INT_MAX;
-            liveProcesses--;
-        }
+        arrivalTime = INT_MAX;
+        arrivalArr[currentProcess] = INT_MAX;
+        liveProcesses--;
     }
     timer = 0;
 }
