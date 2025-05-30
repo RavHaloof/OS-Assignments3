@@ -42,14 +42,12 @@ void inputResponse(char *c) {
 void focusModeRound(int duration) {
     char chr;
     for (int i = 0; i < duration; ++i) {
-        printf("══════════════════════════════════════════════\n"
-               "                Focus Round %d                \n"
-               "──────────────────────────────────────────────\n", (i + 1));
-        printf("Simulate a distraction:\n"
+        printf("\nSimulate a distraction:\n"
                "  1 = Email notification\n"
                "  2 = Reminder to pick up delivery\n"
                "  3 = Doorbell Ringing\n"
-               "  q = Quit\n");
+               "  q = Quit\n"
+               ">> ");
 
         scanf(" %c", &chr);
         if (chr == 'q') {
@@ -84,18 +82,25 @@ void sigSetup(sigset_t *set) {
 void handleSignals() {
     sigset_t s;
     sigpending(&s);
+    int flag = 0;
 
     if (sigismember(&s, SIG1)) {
         sigwaitinfo(&s, NULL);
         handleSig1();
+        flag = 1;
     }
     if (sigismember(&s, SIG2)) {
         sigwaitinfo(&s, NULL);
         handleSig2();
+        flag = 1;
     }
     if (sigismember(&s, SIG3)) {
         sigwaitinfo(&s, NULL);
         handleSig3();
+        flag = 1;
+    }
+    if (flag == 0) {
+        printf("No distractions reached you this round.\n");
     }
 }
 
@@ -106,18 +111,21 @@ void runFocusMode(int numOfRounds, int duration) {
     sigSetup(&set);
     blockSigs(&set);
     sigprocmask(SIG_BLOCK, &set, NULL);
+    printf("Entering Focus Mode. All distractions are blocked.\n");
     // main focus mode loop
     for (int i = 0; i < numOfRounds; ++i) {
         // Blocking the three defined signals and setting the mask on
-        printf("\"Entering Focus Mode. All distractions are blocked.\n");
+        printf("══════════════════════════════════════════════\n"
+               "                Focus Round %d                \n"
+               "──────────────────────────────────────────────\n", (i + 1));
         focusModeRound(duration);
         printf("──────────────────────────────────────────────\n"
-               "        Checking pending distractions...\n"
+               "        Checking pending distractions...        \n"
                "──────────────────────────────────────────────\n");
         handleSignals();
         printf("──────────────────────────────────────────────\n"
                "             Back to Focus Mode.\n"
                "══════════════════════════════════════════════\n");
     }
-    printf("Focus Mode complete. All distractions are now unblocked.\n");
+    printf("\nFocus Mode complete. All distractions are now unblocked.\n");
 }
