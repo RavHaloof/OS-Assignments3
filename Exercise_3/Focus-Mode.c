@@ -28,27 +28,31 @@ void handleSig3() {
     printf("[Outcome:] Food delivery is here.\n");
 }
 
+// Raising signals corresponding to the user's input
 void inputResponse(char *c) {
     if (*c == '1') {
         raise(SIG1);
-    }else if (*c == '2') {
+    } else if (*c == '2') {
         raise(SIG2);
     } else if (*c == '3') {
         raise(SIG3);
     }
 }
 
-// This function runs the text loop
+// This function runs the user's input loop, showing the menu and scanning input
 void focusModeRound(int duration) {
     char chr;
     for (int i = 0; i < duration; ++i) {
-        printf("\nSimulate a distraction:\n"
+        // Menu
+        printf("\n"
+               "Simulate a distraction:\n"
                "  1 = Email notification\n"
                "  2 = Reminder to pick up delivery\n"
                "  3 = Doorbell Ringing\n"
                "  q = Quit\n"
                ">> ");
 
+        // Scanning input and raising signals accordingly
         scanf(" %c", &chr);
         if (chr == 'q') {
             return;
@@ -57,6 +61,7 @@ void focusModeRound(int duration) {
     }
 }
 
+// Makes a set, and adds all predefined signals to it, then blocks them using a mask
 void blockSigs(sigset_t *set) {
     sigaddset(set, SIG1);
     sigaddset(set, SIG2);
@@ -67,6 +72,7 @@ void blockSigs(sigset_t *set) {
 // Setting up signal handlers
 void sigSetup(sigset_t *set) {
     struct sigaction usr_action;
+    // Using sigaction to change the signal's default handling to my own custom ones
     usr_action.sa_handler = handleSig1;
     usr_action.sa_mask = *set;
     usr_action.sa_flags = 0;
@@ -79,26 +85,33 @@ void sigSetup(sigset_t *set) {
     sigaction(SIG3, &usr_action, NULL);
 }
 
-void handleSignals() {
+// Using sigismember and sigpending (since I have to)
+void handleSignals(){
+    // Saving all recieved signals in set s
     sigset_t s;
     sigpending(&s);
+    // Setting up a flag to know whether any signals have been received at all
     int flag = 0;
 
+    // Checking for signal 1 (SIGUSR1)
     if (sigismember(&s, SIG1)) {
         sigwaitinfo(&s, NULL);
         handleSig1();
         flag = 1;
     }
+    // Checking for signal 2 (SIGUSR2)
     if (sigismember(&s, SIG2)) {
         sigwaitinfo(&s, NULL);
         handleSig2();
         flag = 1;
     }
+    // Checking for signal 3 (SYSSIG)
     if (sigismember(&s, SIG3)) {
         sigwaitinfo(&s, NULL);
         handleSig3();
         flag = 1;
     }
+    // In case none of them were received
     if (flag == 0) {
         printf("No distractions reached you this round.\n");
     }
@@ -110,7 +123,6 @@ void runFocusMode(int numOfRounds, int duration) {
     sigset_t set;
     sigSetup(&set);
     blockSigs(&set);
-    sigprocmask(SIG_BLOCK, &set, NULL);
     printf("Entering Focus Mode. All distractions are blocked.\n");
     // main focus mode loop
     for (int i = 0; i < numOfRounds; ++i) {
