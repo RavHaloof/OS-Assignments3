@@ -80,15 +80,50 @@ void idling(int burst) {
     timer += burst;
 }
 
+// Checks to see whether the process has arrived yet or not, if it has, we run it
+void execProcess(int minArrivalTime, int burst, Process p) {
+    pid_t currentProcessPID;
+
+    // In case the process has not arrived yet
+    if (minArrivalTime > timer) {
+        idling(minArrivalTime - timer);
+    }
+    // Starting the process, and running it to its full burst time
+    currentProcessPID = startProcess();
+    runProcess(currentProcessPID, burst, p);
+    kill(currentProcessPID, SIGKILL);
+}
+
+// The initial printing output
+void FCFSStart() {
+    printf("══════════════════════════════════════════════\n"
+           ">> Scheduler Mode : FCFS\n"
+           ">> Engine Status  : Initialized\n"
+           "──────────────────────────────────────────────\n"
+           "\n");
+}
+
+// The output at the end of the program, calculating the average waiting time
+void FCFSEnd() {
+    printf("\n"
+           "──────────────────────────────────────────────\n"
+           ">> Engine Status  : Completed\n"
+           ">> Summary        :\n"
+           "   └─ Average Waiting Time : %d time units\n"
+           ">> End of Report\n"
+           "══════════════════════════════════════════════\n"
+           "\n", 1);
+}
+
 // The first come, first served scheduler system implementation
 void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
+    FCFSStart();
     /* Setting up variables to use later, they are for tracking the current process and its PID, and saving the minimum
      Saving the minimum arrival time
      */
     int liveProcesses = processNum;
     int minArrivalTime = INT_MAX;
     int currentProcess = 0;
-    pid_t currentProcessPID;
     int arrivalArr[processNum];
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
@@ -103,14 +138,7 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
                 currentProcess = i;
             }
         }
-        // In case the process has not arrived yet
-        if (minArrivalTime > timer) {
-            idling(minArrivalTime - timer);
-        }
-        // Starting the process, and running it to its full burst time
-        currentProcessPID = startProcess();
-        runProcess(currentProcessPID, array[currentProcess].burst, array[currentProcess]);
-        kill(currentProcessPID, SIGKILL);
+        execProcess(minArrivalTime, array[currentProcess].burst, array[currentProcess]);
         // Once we finished running the process, set its arrival time to be the maximum so that
         // We don't run it again
         minArrivalTime = INT_MAX;
@@ -120,6 +148,36 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
     timer = 0;
 }
 
+// Finds the minimal value in an array
+int findMin(int *array, int len) {
+    int min = INT_MAX;
+    for (int i = 0; i < len; ++i) {
+        if (array[i] < min) {
+            min = array[i];
+        }
+    }
+    return min;
+}
+
+// Finds the process we should run next in case none of the processes have arrived yet
+int findMinSJF(int *arrivalArray, int len, Process array[MAX_DESCRIPTION]) {
+    int arrivalTime = findMin(arrivalArray, len);
+    int shortestBurst = INT_MAX;
+    int chosenProcess;
+
+    // Finds the minimal burst from the processes that arrive at a certain time
+    for (int i = 0; i < len; ++i) {
+        if (arrivalArray[i] == arrivalTime) {
+            if (array[i].burst < shortestBurst) {
+                shortestBurst = array[i].burst;
+                chosenProcess = i;
+            }
+        }
+    }
+
+    return chosenProcess;
+}
+
 // The shortest job first scheduler system implementation
 void SJF(Process array[MAX_DESCRIPTION], int processNum) {
     /* Setting up parameters to save the current running process, its PID, and an array of the arrival time, and
@@ -127,7 +185,7 @@ void SJF(Process array[MAX_DESCRIPTION], int processNum) {
     int liveProcesses = processNum;
     int currentProcess;
     int shortestBurst = INT_MAX;
-    pid_t currentProcessPID;
+    int minArrivalTime = INT_MAX;
     int arrivalArr[processNum];
 
     // Setting the arrays to have their supposed values
@@ -135,20 +193,36 @@ void SJF(Process array[MAX_DESCRIPTION], int processNum) {
         arrivalArr[i] = array[i].arrival;
     }
     // While we still haven't finished running all the processes
-    while (processNum > 0) {
+    while (liveProcesses > 0) {
         for (int i = 0; i < processNum; ++i) {
+            // Checking whether the process has arrived yet
             if (arrivalArr[i] <= timer) {
+                // In case the process' burst is the same as the current minimum, we choose the one who arrived first
                 if (shortestBurst == array[i].burst) {
-                    if (arrivalArr[currentProcess] > arrivalArr[i]) {
+                    if (minArrivalTime > arrivalArr[i]) {
                         shortestBurst = array[i].burst;
                         currentProcess = i;
+                        minArrivalTime = array[i].arrival;
                     }
-                } else if(shortestBurst > array[i].burst) {
+                }
+                // In case the current process' burst is shorter, we just pick it
+                else if(shortestBurst > array[i].burst) {
                     shortestBurst = array[i].burst;
                     currentProcess = i;
+                    minArrivalTime = array[i].arrival;
                 }
             }
         }
+        if (minArrivalTime == INT_MAX) {
+            minArrivalTime = findMin(arrivalArr, processNum);
+            currentProcess = findMinSJF(arrivalArr, processNum, array);
+        }
+        execProcess(minArrivalTime, array[currentProcess].burst, array[currentProcess]);
+        // Once we finished running the process, set its arrival time to be the maximum so that
+        // We don't run it again
+        minArrivalTime = INT_MAX;
+        arrivalArr[currentProcess] = INT_MAX;
+        liveProcesses--;
     }
 }
 
