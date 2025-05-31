@@ -51,7 +51,6 @@ pid_t startProcess() {
         blockSigsCPU();
         while (1) {
             pause();
-            printf("Received a signal from parent\n");
             kill(getppid(), SIGCONT);
         }
     }
@@ -69,22 +68,28 @@ void runProcess(pid_t pid, int burst, Process p) {
     // Waits for a signal back, indicating that the child indeed got the signal given to it
     pause();
     printf("%d → %d: %s Running %s.\n", timer, (timer + burst), p.name, p.desc);
-    // Updates the timer now that we've ran the process
+    // Updates the timer now that we've run the process
+    timer += burst;
+}
+
+void idling(int burst) {
+    alarm(burst);
+    pause();
+    printf("%d → %d: Idle.\n", timer, (timer+burst));
     timer += burst;
 }
 
 // The first come, first served scheduler system implementation
 void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
-    // Setting up variables to use later, live processes is the amount of processes which
-    // Have not finished yet
+    // Setting up variables to use later, live processes is the amount of processes which have not finished yet
     int liveProcesses = processNum;
     // Arrival time will store the minimum arrival time that we found in the process array
     int arrivalTime = INT_MAX;
-    // Current process will store that process that is being run right now
+    // Current process will store the process that is being run right now
     int currentProcess = 0;
     pid_t currentProcessPID;
-    // This array will store the arrival time of each process, so that we
-    // Will be able to change it without hurting the original collected data
+    /* This array will store the arrival time of each process, so that we
+    Will be able to change it without hurting the original collected data */
     int arrivalArr[processNum];
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
@@ -98,6 +103,10 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
                 arrivalTime = arrivalArr[i];
                 currentProcess = i;
             }
+        }
+        // In case the process has not arrived yet
+        if (arrivalTime > timer) {
+            idling(arrivalTime - timer);
         }
         // Starting the process, and running it to its full burst time
         currentProcessPID = startProcess();
