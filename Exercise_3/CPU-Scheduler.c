@@ -42,7 +42,7 @@ void blockSigsCPU() {
 }
 
 // Function which simulates a run for a process for a given amount of seconds (burst)
-pid_t startProc() {
+pid_t startProcess() {
     pid_t procPid = fork();
     if (procPid == 0) {
         // The child process activates the cont signal handler, and waits for signals from
@@ -59,7 +59,7 @@ pid_t startProc() {
 }
 
 // Function which simulates the running of a process with a given burst time
-void runProc(pid_t pid, int burst, Process p) {
+void runProcess(pid_t pid, int burst, Process p) {
     // Waits for the amount of time given in the burst
     alarm(burst);
     pause();
@@ -82,15 +82,14 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
     int arrivalTime = INT_MAX;
     // Current process will store that process that is being run right now
     int currentProcess = 0;
+    pid_t currentProcessPID;
     // This array will store the arrival time of each process, so that we
     // Will be able to change it without hurting the original collected data
     int arrivalArr[processNum];
-
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
         arrivalArr[i] = array[i].arrival;
     }
-
     // While we still haven't finished all the processes
     while (liveProcesses > 0) {
         // Finding the process which arrived the earliest
@@ -100,6 +99,10 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
                 currentProcess = i;
             }
         }
+        // Starting the process, and running it to its full burst time
+        currentProcessPID = startProcess();
+        runProcess(currentProcessPID, array[currentProcess].burst, array[currentProcess]);
+        kill(currentProcessPID, SIGKILL);
         // Once we finished running the process, set its arrival time to be the maximum so that
         // We don't run it again
         arrivalTime = INT_MAX;
