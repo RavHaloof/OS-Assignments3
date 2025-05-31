@@ -24,11 +24,9 @@ typedef struct {
     int priority;
 } Process;
 
-void alarmHandler(int sig) {
-}
+void alarmHandler(int sig) {}
 
-void contHandler(int sig) {
-}
+void contHandler(int sig) {}
 
 // Sets up a mask which blocks all signals except for the ones we will use
 void blockSigsCPU() {
@@ -81,17 +79,21 @@ void idling(int burst) {
 }
 
 // Checks to see whether the process has arrived yet or not, if it has, we run it
-void execProcess(int minArrivalTime, int burst, Process p) {
+// Also returns the time when the process started running
+int execProcess(int minArrivalTime, int burst, Process p) {
     pid_t currentProcessPID;
 
     // In case the process has not arrived yet
     if (minArrivalTime > timer) {
         idling(minArrivalTime - timer);
     }
+    int startTime = timer;
     // Starting the process, and running it to its full burst time
     currentProcessPID = startProcess();
     runProcess(currentProcessPID, burst, p);
+    // Killing the process now that we've finished running it
     kill(currentProcessPID, SIGKILL);
+    return startTime;
 }
 
 // The initial printing output
@@ -104,15 +106,21 @@ void FCFSStart() {
 }
 
 // The output at the end of the program, calculating the average waiting time
-void FCFSEnd() {
+void schedulerEnd(int *startTime, Process *pArray, int processCount) {
+    double totalWait = 0;
+    // Calculates the total amout of time waited
+    for (int i = 0; i < processCount; ++i) {
+        totalWait += (double) (startTime[i] - pArray[i].arrival);
+    }
+
     printf("\n"
            "──────────────────────────────────────────────\n"
            ">> Engine Status  : Completed\n"
            ">> Summary        :\n"
-           "   └─ Average Waiting Time : %d time units\n"
+           "   └─ Average Waiting Time : %.2f time units\n"
            ">> End of Report\n"
            "══════════════════════════════════════════════\n"
-           "\n", 1);
+           "\n", (totalWait/(double) processCount));
 }
 
 // The first come, first served scheduler system implementation
@@ -125,6 +133,8 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
     int minArrivalTime = INT_MAX;
     int currentProcess = 0;
     int arrivalArr[processNum];
+    int startTime[processNum];
+
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
         arrivalArr[i] = array[i].arrival;
@@ -138,13 +148,14 @@ void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
                 currentProcess = i;
             }
         }
-        execProcess(minArrivalTime, array[currentProcess].burst, array[currentProcess]);
+        startTime[currentProcess] = execProcess(minArrivalTime, array[currentProcess].burst, array[currentProcess]);
         // Once we finished running the process, set its arrival time to be the maximum so that
         // We don't run it again
         minArrivalTime = INT_MAX;
         arrivalArr[currentProcess] = INT_MAX;
         liveProcesses--;
     }
+    schedulerEnd(startTime, array, processNum);
     timer = 0;
 }
 
@@ -178,6 +189,15 @@ int findMinSJF(int *arrivalArray, int len, Process array[MAX_DESCRIPTION]) {
     return chosenProcess;
 }
 
+// First thing we print when we start SJF
+void SJFStart() {
+    printf("══════════════════════════════════════════════\n"
+           ">> Scheduler Mode : SJF\n"
+           ">> Engine Status  : Initialized\n"
+           "──────────────────────────────────────────────\n"
+           "\n");
+}
+
 // The shortest job first scheduler system implementation
 void SJF(Process array[MAX_DESCRIPTION], int processNum) {
     /* Setting up parameters to save the current running process, its PID, and an array of the arrival time, and
@@ -187,6 +207,7 @@ void SJF(Process array[MAX_DESCRIPTION], int processNum) {
     int shortestBurst = INT_MAX;
     int minArrivalTime = INT_MAX;
     int arrivalArr[processNum];
+    int startTime[processNum];
 
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
@@ -217,13 +238,14 @@ void SJF(Process array[MAX_DESCRIPTION], int processNum) {
             minArrivalTime = findMin(arrivalArr, processNum);
             currentProcess = findMinSJF(arrivalArr, processNum, array);
         }
-        execProcess(minArrivalTime, array[currentProcess].burst, array[currentProcess]);
+        startTime[currentProcess] = execProcess(minArrivalTime, array[currentProcess].burst, array[currentProcess]);
         // Once we finished running the process, set its arrival time to be the maximum so that
         // We don't run it again
         minArrivalTime = INT_MAX;
         arrivalArr[currentProcess] = INT_MAX;
         liveProcesses--;
     }
+    schedulerEnd(startTime, array, processNum);
 }
 
 // The priority scheduler system implementation
