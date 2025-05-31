@@ -62,7 +62,7 @@ void focusModeRound(int duration) {
 }
 
 // Makes a set, and adds all predefined signals to it, then blocks them using a mask
-void blockSigs(sigset_t *set) {
+void blockSigsFM(sigset_t *set) {
     sigaddset(set, SIG1);
     sigaddset(set, SIG2);
     sigaddset(set, SIG3);
@@ -122,7 +122,7 @@ void runFocusMode(int numOfRounds, int duration) {
     // Setting up the blocking sets and the sigactions
     sigset_t set;
     sigSetup(&set);
-    blockSigs(&set);
+    blockSigsFM(&set);
     printf("Entering Focus Mode. All distractions are blocked.\n");
     // main focus mode loop
     for (int i = 0; i < numOfRounds; ++i) {

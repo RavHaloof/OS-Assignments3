@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <limits.h>
 
 #define MAX_NAME 50
 #define MAX_DESCRIPTION 100
@@ -23,20 +24,53 @@ typedef struct {
     int priority;
 } Process;
 
-void blockSignalsExceptAlarm() {
+void alarmHandler(int sig) {
+}
+
+void contHandler(int sig) {
+}
+
+// Sets up a mask which blocks all signals except for the ones we will use
+void blockSigsCPU() {
     sigset_t set;
     sigfillset(&set);
     sigdelset(&set, SIGALRM);
-    sigprocmask(SIG_SET, &set, NULL);
+    sigdelset(&set, SIGSTOP);
+    sigdelset(&set, SIGCONT);
+    sigdelset(&set, SIGKILL);
+    sigprocmask(SIG_SETMASK, &set, NULL);
 }
 
-void simulateRun(Process p) {
-    if (fork() == 0) {
-        alarm(p.burst);
-        pause();
-        printf("%d → %d: %s Running %s.", timer, (timer + p.burst), p.name, p.desc);
+// Function which simulates a run for a process for a given amount of seconds (burst)
+pid_t startProc() {
+    pid_t procPid = fork();
+    if (procPid == 0) {
+        // The child process activates the cont signal handler, and waits for signals from
+        // The parent to activate and deactivate
+        signal(SIGCONT, contHandler);
+        blockSigsCPU();
+        while (1) {
+            pause();
+            printf("Received a signal from parent\n");
+            kill(getppid(), SIGCONT);
+        }
     }
-    timer += p.burst;
+    return procPid;
+}
+
+// Function which simulates the running of a process with a given burst time
+void runProc(pid_t pid, int burst, Process p) {
+    // Waits for the amount of time given in the burst
+    alarm(burst);
+    pause();
+    // Sends a signal to the child to wake it up (not really necessary, but I wanted to simulate
+    // Contact between the schedule and the processes themselves
+    kill(pid, SIGCONT);
+    // Waits for a signal back, indicating that the child indeed got the signal given to it
+    pause();
+    printf("%d → %d: %s Running %s.\n", timer, (timer + burst), p.name, p.desc);
+    // Updates the timer now that we've ran the process
+    timer += burst;
 }
 
 // The first come, first served scheduler system implementation
@@ -128,6 +162,8 @@ int readCSV(FILE** csvFile, Process array[MAX_DESCRIPTION]) {
 }
 
 void runCPUScheduler(char* processesCsvFilePath, int timeQuantum) {
+    signal(SIGALRM, alarmHandler);
+    signal(SIGCONT, contHandler);
     // Opening the file
     FILE *dataFile = fopen(processesCsvFilePath, "r");
     // Creating an array of processes
