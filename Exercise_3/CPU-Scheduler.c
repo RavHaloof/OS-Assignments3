@@ -322,7 +322,32 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
 
 // The Round Robin scheduler system implementation
 void roundRobin(Process array[MAX_DESCRIPTION], int processNum, int quantum) {
+    // Arrival array updates the process's arrival, burstArr updates their remaining bursts, activeProcesses checks
+    // which processes can be run in the round-robin
+    int arrivalArr[processNum];
+    int burstArr[processNum];
+    int activeProcesses[processNum];
+    int burst = quantum;
+    // Setting the arrays to have their supposed values
+    for (int i = 0; i < processNum; ++i) {
+        arrivalArr[i] = array[i].arrival;
+        burstArr[i] = array[i].burst;
+        activeProcesses[i] = 0;
+    }
 
+    for (int i = 0; i < processNum; ++i) {
+        if (arrivalArr[i] < timer && burstArr[i] > 0) {
+            activeProcesses[i] = 1;
+        }
+        for (int j = 0; j < processNum; ++j) {
+            if (activeProcesses[i] == 1) {
+                if (quantum > burstArr[i]) {
+                    burst = burstArr[i];
+                }
+            }
+            burst = quantum;
+        }
+    }
 }
 
 // The function that will read the given CSV, and send it back as a matrix
