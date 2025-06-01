@@ -39,6 +39,20 @@ void blockSigsCPU() {
     sigprocmask(SIG_SETMASK, &set, NULL);
 }
 
+// Sorts the process array via arrival time
+void sortProcessArray(Process *pArray, int len) {
+    Process temp;
+    for (int i = 0; i < len; ++i) {
+        for (int j = i + 1; j < len; ++j) {
+            if (pArray[j].arrival < pArray[i].arrival) {
+                temp = pArray[j];
+                pArray[j] = pArray[i];
+                pArray[i] = temp;
+            }
+        }
+    }
+}
+
 // Function which simulates a run for a process for a given amount of seconds (burst)
 pid_t startProcess() {
     pid_t procPid = fork();
@@ -464,5 +478,6 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum) {
     FCFS(processArr, processNum);
     SJF(processArr, processNum);
     priority(processArr, processNum);
+    sortProcessArray(processArr, processNum);
     roundRobin(processArr, processNum, timeQuantum);
 }
