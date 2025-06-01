@@ -318,6 +318,11 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
         highestPrio = INT_MIN;
     }
     schedulerEnd(startTime, array, processNum);
+    timer = 0;
+}
+
+void singleRoundRobin() {
+
 }
 
 // The Round Robin scheduler system implementation
