@@ -115,7 +115,7 @@ void schedulerStart(char* string) {
 // The output at the end of the program, calculating the average waiting time
 void schedulerEnd(int *startTime, Process *pArray, int processCount) {
     double totalWait = 0;
-    // Calculates the total amout of time waited
+    // Calculates the total amount of time waited
     for (int i = 0; i < processCount; ++i) {
         totalWait += (double) (startTime[i] - pArray[i].arrival);
     }
@@ -125,6 +125,7 @@ void schedulerEnd(int *startTime, Process *pArray, int processCount) {
            ">> Engine Status  : Completed\n"
            ">> Summary        :\n"
            "   └─ Average Waiting Time : %.2f time units\n"
+           "\n"
            ">> End of Report\n"
            "══════════════════════════════════════════════\n"
            "\n", (totalWait/(double) processCount));
@@ -132,7 +133,7 @@ void schedulerEnd(int *startTime, Process *pArray, int processCount) {
 
 // The first come, first served scheduler system implementation
 void FCFS(Process array[MAX_DESCRIPTION], int processNum) {
-    FCFSStart();
+    schedulerStart("FCFS");
     /* Setting up variables to use later, they are for tracking the current process and its PID, and saving the minimum
      Saving the minimum arrival time
      */
@@ -217,7 +218,7 @@ void SJFStart() {
 
 // The shortest job first scheduler system implementation
 void SJF(Process array[MAX_DESCRIPTION], int processNum) {
-    SJFStart();
+    schedulerStart("SJF");
     /* Setting up parameters to save the current running process, its PID, and an array of the arrival time, and
     The amount of time left to finish each process*/
     int currentProcess;
@@ -276,7 +277,7 @@ void priorityStart() {
 
 // The priority scheduler system implementation
 void priority(Process array[MAX_DESCRIPTION], int processNum) {
-    priorityStart();
+    schedulerStart("Priority");
     /* Setting up parameters to save the current running process, its PID, and an array of the arrival time, and
     The amount of time left to finish each process*/
     int currentProcess;
@@ -328,8 +329,15 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
     timer = 0;
 }
 
-void initProcess() {
-
+void schedulerEndRobin() {
+    printf("\n"
+           "──────────────────────────────────────────────\n"
+           ">> Engine Status  : Completed\n"
+           ">> Summary        :\n"
+           "   └─ Total Turnaround Time : %d time units\n"
+           ">> End of Report\n"
+           "══════════════════════════════════════════════\n"
+           "\n",timer);
 }
 
 // Runs a single round in the round-robin
@@ -384,6 +392,7 @@ int singleRoundRobin(Process *pArray, int *arrivalArr, int *burstArr, pid_t *act
 
 // The Round Robin scheduler system implementation
 void roundRobin(Process array[MAX_DESCRIPTION], int processNum, int quantum) {
+    schedulerStart("Round Robin");
     // Arrival array updates the process's arrival, burstArr updates their remaining bursts, activeProcesses checks
     // which processes can be run in the round-robin
     int arrivalArr[processNum];
@@ -402,6 +411,7 @@ void roundRobin(Process array[MAX_DESCRIPTION], int processNum, int quantum) {
         unfinishedProc -= singleRoundRobin(array, arrivalArr, burstArr,
                                            activeProcesses, processNum, quantum);
     }
+    schedulerEndRobin();
     timer = 0;
 }
 
@@ -451,8 +461,8 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum) {
     Process processArr[MAX_PROCESSES];
     // Saving all processes in the process array, and saving the total amount of processes
     int processNum = readCSV(&dataFile, processArr);
-    //FCFS(processArr, processNum);
-    //SJF(processArr, processNum);
-    //priority(processArr, processNum);
+    FCFS(processArr, processNum);
+    SJF(processArr, processNum);
+    priority(processArr, processNum);
     roundRobin(processArr, processNum, timeQuantum);
 }
