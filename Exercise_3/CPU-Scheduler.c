@@ -125,7 +125,6 @@ void schedulerEnd(int *startTime, Process *pArray, int processCount) {
            ">> Engine Status  : Completed\n"
            ">> Summary        :\n"
            "   └─ Average Waiting Time : %.2f time units\n"
-           "\n"
            ">> End of Report\n"
            "══════════════════════════════════════════════\n"
            "\n", (totalWait/(double) processCount));
@@ -335,6 +334,7 @@ void schedulerEndRobin() {
            ">> Engine Status  : Completed\n"
            ">> Summary        :\n"
            "   └─ Total Turnaround Time : %d time units\n"
+           "\n"
            ">> End of Report\n"
            "══════════════════════════════════════════════\n"
            "\n",timer);
