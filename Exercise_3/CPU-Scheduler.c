@@ -82,7 +82,6 @@ void idling(int burst) {
 // Also returns the time when the process started running
 int execProcess(int minArrivalTime, int burst, Process p) {
     pid_t currentProcessPID;
-
     // In case the process has not arrived yet
     if (minArrivalTime > timer) {
         idling(minArrivalTime - timer);
@@ -103,6 +102,14 @@ void FCFSStart() {
            ">> Engine Status  : Initialized\n"
            "──────────────────────────────────────────────\n"
            "\n");
+}
+
+void schedulerStart(char* string) {
+    printf("══════════════════════════════════════════════\n"
+           ">> Scheduler Mode : %s\n"
+           ">> Engine Status  : Initialized\n"
+           "──────────────────────────────────────────────\n"
+           "\n", string);
 }
 
 // The output at the end of the program, calculating the average waiting time
@@ -321,8 +328,58 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
     timer = 0;
 }
 
-void singleRoundRobin() {
+void initProcess() {
 
+}
+
+// Runs a single round in the round-robin
+int singleRoundRobin(Process *pArray, int *arrivalArr, int *burstArr, pid_t *activeProcesses, int len, int quantum) {
+    int finished = 0;
+    int finishedFlag = 0;
+    int burst = quantum;
+    int minArrivalTime = findMin(arrivalArr, len);
+    // In case no process has arrived yet
+    if (minArrivalTime > timer) {
+        // In case the next process will arrive faster than the given quantum
+        if (burst > minArrivalTime - timer) {
+            burst = minArrivalTime - timer;
+        }
+        idling(burst);
+        return 0;
+    }
+
+    for (int i = 0; i < len; ++i) {
+        burst = quantum;
+        finishedFlag = 0;
+        // Checking whether this process has arrived
+        if (arrivalArr[i] <= timer && burstArr[i] > 0) {
+            // By marking a process with 0, we signal that it is ready to be initialized
+            activeProcesses[i] = 0;
+        }
+        // In case the process has not been initialized yet, we do it
+        if (activeProcesses[i] == 0) {
+            activeProcesses[i] = startProcess();
+        }
+        // In case the process is already initialized and is currently paused, we run it for the quantum burst
+        if (activeProcesses[i] > 0) {
+            // In case the process has less time to run than the given quantum, and we set the flag to kill it
+            if (quantum >= burstArr[i]) {
+                burst = burstArr[i];
+                finishedFlag = 1;
+            }
+            // We run the process and reduce its remaining runtime by the burst we ran it for
+            runProcess(activeProcesses[i], burst, pArray[i]);
+            burstArr[i] -= burst;
+            // If the process has finished running, we kill it, mark it as finished, and add 1 to the finished counter
+            if (finishedFlag == 1) {
+                kill(activeProcesses[i], SIGKILL);
+                finished++;
+                activeProcesses[i] = -1;
+                arrivalArr[i] = INT_MAX;
+            }
+        }
+    }
+    return finished;
 }
 
 // The Round Robin scheduler system implementation
@@ -331,28 +388,21 @@ void roundRobin(Process array[MAX_DESCRIPTION], int processNum, int quantum) {
     // which processes can be run in the round-robin
     int arrivalArr[processNum];
     int burstArr[processNum];
-    int activeProcesses[processNum];
-    int burst = quantum;
+    pid_t activeProcesses[processNum];
+    int unfinishedProc = processNum;
+
     // Setting the arrays to have their supposed values
     for (int i = 0; i < processNum; ++i) {
         arrivalArr[i] = array[i].arrival;
         burstArr[i] = array[i].burst;
-        activeProcesses[i] = 0;
+        // An array that will be filled with the processes' PID, -1 means uninitialized and not ready
+        activeProcesses[i] = -1;
     }
-
-    for (int i = 0; i < processNum; ++i) {
-        if (arrivalArr[i] < timer && burstArr[i] > 0) {
-            activeProcesses[i] = 1;
-        }
-        for (int j = 0; j < processNum; ++j) {
-            if (activeProcesses[i] == 1) {
-                if (quantum > burstArr[i]) {
-                    burst = burstArr[i];
-                }
-            }
-            burst = quantum;
-        }
+    while (unfinishedProc > 0) {
+        unfinishedProc -= singleRoundRobin(array, arrivalArr, burstArr,
+                                           activeProcesses, processNum, quantum);
     }
+    timer = 0;
 }
 
 // The function that will read the given CSV, and send it back as a matrix
@@ -401,8 +451,8 @@ void runCPUScheduler(char* processesCsvFilePath, int timeQuantum) {
     Process processArr[MAX_PROCESSES];
     // Saving all processes in the process array, and saving the total amount of processes
     int processNum = readCSV(&dataFile, processArr);
-    FCFS(processArr, processNum);
-    SJF(processArr, processNum);
-    priority(processArr, processNum);
+    //FCFS(processArr, processNum);
+    //SJF(processArr, processNum);
+    //priority(processArr, processNum);
     roundRobin(processArr, processNum, timeQuantum);
 }
