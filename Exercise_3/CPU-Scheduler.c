@@ -366,8 +366,8 @@ int singleRoundRobin(Process *pArray, int *arrivalArr, int *burstArr, pid_t *act
     for (int i = 0; i < len; ++i) {
         burst = quantum;
         finishedFlag = 0;
-        // Checking whether this process has arrived
-        if (arrivalArr[i] <= timer && burstArr[i] > 0) {
+        // Checking whether this process has arrived, and whether we haven't started it before
+        if (arrivalArr[i] <= timer && burstArr[i] > 0 && activeProcesses[i] < 0) {
             // By marking a process with 0, we signal that it is ready to be initialized
             activeProcesses[i] = 0;
         }
