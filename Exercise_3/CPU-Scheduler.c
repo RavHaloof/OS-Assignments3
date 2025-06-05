@@ -294,7 +294,7 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
     /* Setting up parameters to save the current running process, its PID, and an array of the arrival time, and
     The amount of time left to finish each process*/
     int currentProcess;
-    int highestPrio = INT_MIN;
+    int highestPrio = INT_MAX;
     int minArrivalTime = INT_MAX;
     int arrivalArr[processNum];
     int startTime[processNum];
@@ -310,16 +310,10 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
         for (int i = 0; i < processNum; ++i) {
             // Checking whether the process has arrived yet
             if (arrivalArr[i] <= timer) {
-                // In case the process' priority is the same as the current maximum, we choose the one who arrived first
-                if (highestPrio == array[i].priority) {
-                    if (minArrivalTime > arrivalArr[i]) {
-                        highestPrio = array[i].priority;
-                        currentProcess = i;
-                        minArrivalTime = array[i].arrival;
-                    }
-                }
-                // In case the current process' priority is lower, we just pick it
-                else if(highestPrio > array[i].priority) {
+                // In case the process' priority is the same as the current minimum, we choose the one who arrived first
+                // Or in case the current process' priority is lower, we just pick it
+                if ((highestPrio == array[i].priority && arrivalArr[i] < minArrivalTime) ||
+                        highestPrio > array[i].priority) {
                     highestPrio = array[i].priority;
                     currentProcess = i;
                     minArrivalTime = array[i].arrival;
@@ -336,7 +330,7 @@ void priority(Process array[MAX_DESCRIPTION], int processNum) {
         // We don't run it again
         minArrivalTime = INT_MAX;
         arrivalArr[currentProcess] = INT_MAX;
-        highestPrio = INT_MIN;
+        highestPrio = INT_MAX;
     }
     schedulerEnd(startTime, array, processNum);
     timer = 0;
@@ -350,8 +344,7 @@ void schedulerEndRobin() {
            "   └─ Total Turnaround Time : %d time units\n"
            "\n"
            ">> End of Report\n"
-           "══════════════════════════════════════════════\n"
-           "\n",timer);
+           "══════════════════════════════════════════════\n", timer);
 }
 
 // Runs a single round in the round-robin
@@ -437,8 +430,8 @@ int readCSV(FILE** csvFile, Process array[MAX_DESCRIPTION]) {
 
     // Getting rid of the first two lines since they're useless
     //TODO: DELETE THOSE TWO LINES LATER, THEY'RE THERE ONLY FOR TESTING
-    fgets(line, sizeof(line), *csvFile);
-    fgets(line, sizeof(line), *csvFile);
+    //fgets(line, sizeof(line), *csvFile);
+    //fgets(line, sizeof(line), *csvFile);
 
     // Setting the process array
     while (fgets(line, sizeof(line), *csvFile) != NULL) {

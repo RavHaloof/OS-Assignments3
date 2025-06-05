@@ -132,11 +132,11 @@ void runFocusMode(int numOfRounds, int duration) {
                "──────────────────────────────────────────────\n", (i + 1));
         focusModeRound(duration);
         printf("──────────────────────────────────────────────\n"
-               "        Checking pending distractions...        \n"
+               "        Checking pending distractions...      \n"
                "──────────────────────────────────────────────\n");
         handleSignals();
         printf("──────────────────────────────────────────────\n"
-               "             Back to Focus Mode.\n"
+               "             Back to Focus Mode.              \n"
                "══════════════════════════════════════════════\n");
     }
     printf("\nFocus Mode complete. All distractions are now unblocked.\n");
