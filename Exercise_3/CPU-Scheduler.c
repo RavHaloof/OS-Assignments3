@@ -11,7 +11,9 @@
 #define MAX_DESCRIPTION 100
 #define MAX_LINE_LENGTH 256
 #define MAX_PROCESSES 1000
-#define FILE_VARIABLES 5
+#define PROCESS_READY 0
+#define PROCESS_EXPECTED -1
+#define PROCESS_FINISHED -2
 
 int timer = 0;
 
@@ -71,6 +73,10 @@ pid_t startProcess() {
 
 // Function which simulates the running of a process with a given burst time
 void runProcess(pid_t pid, int burst, Process p) {
+    if (burst <= 0) {
+        printf("%d → %d: %s Running %s.\n", timer, (timer + burst), p.name, p.desc);
+        return;
+    }
     // Waits for the amount of time given in the burst
     alarm(burst);
     pause();
@@ -107,15 +113,6 @@ int execProcess(int minArrivalTime, int burst, Process p) {
     // Killing the process now that we've finished running it
     kill(currentProcessPID, SIGKILL);
     return startTime;
-}
-
-// The initial printing output
-void FCFSStart() {
-    printf("══════════════════════════════════════════════\n"
-           ">> Scheduler Mode : FCFS\n"
-           ">> Engine Status  : Initialized\n"
-           "──────────────────────────────────────────────\n"
-           "\n");
 }
 
 void schedulerStart(char* string) {
@@ -220,15 +217,6 @@ int chooseProcess(int *arrivalArray, int len, Process array[100], int flag) {
     return chosenProcess;
 }
 
-// First thing we print when we start SJF
-void SJFStart() {
-    printf("══════════════════════════════════════════════\n"
-           ">> Scheduler Mode : SJF\n"
-           ">> Engine Status  : Initialized\n"
-           "──────────────────────────────────────────────\n"
-           "\n");
-}
-
 // The shortest job first scheduler system implementation
 void SJF(Process array[MAX_DESCRIPTION], int processNum) {
     schedulerStart("SJF");
@@ -278,14 +266,6 @@ void SJF(Process array[MAX_DESCRIPTION], int processNum) {
     }
     schedulerEnd(startTime, array, processNum);
     timer = 0;
-}
-
-void priorityStart() {
-    printf("══════════════════════════════════════════════\n"
-           ">> Scheduler Mode : Priority\n"
-           ">> Engine Status  : Initialized\n"
-           "──────────────────────────────────────────────\n"
-           "\n");
 }
 
 // The priority scheduler system implementation
@@ -344,7 +324,17 @@ void schedulerEndRobin() {
            "   └─ Total Turnaround Time : %d time units\n"
            "\n"
            ">> End of Report\n"
-           "══════════════════════════════════════════════\n", timer);
+           "══════════════════════════════════════════════\n ", timer);
+}
+
+void roundRobinIdling(int burst, int minArrivalTime) {
+    int idleTime = burst;
+    // In case the next process will arrive faster than the given quantum
+    if (burst > minArrivalTime - timer) {
+        idleTime = minArrivalTime - timer;
+    }
+    // Idle until a process arrives
+    idling(idleTime);
 }
 
 // Runs a single round in the round-robin
@@ -353,30 +343,27 @@ int singleRoundRobin(Process *pArray, int *arrivalArr, int *burstArr, pid_t *act
     int finishedFlag = 0;
     int burst = quantum;
     int minArrivalTime = findMin(arrivalArr, len);
-    // In case no process has arrived yet
+    // In case no process has arrived yet, we idle until a process comes
     if (minArrivalTime > timer) {
-        // In case the next process will arrive faster than the given quantum
-        if (burst > minArrivalTime - timer) {
-            burst = minArrivalTime - timer;
-        }
-        idling(burst);
+        roundRobinIdling(burst, minArrivalTime);
         return 0;
     }
-
+    // Runs over all processes
     for (int i = 0; i < len; ++i) {
         burst = quantum;
         finishedFlag = 0;
         // Checking whether this process has arrived, and whether we haven't started it before
-        if (arrivalArr[i] <= timer && burstArr[i] > 0 && activeProcesses[i] < 0) {
+        if (arrivalArr[i] <= timer && activeProcesses[i] == PROCESS_EXPECTED) {
             // By marking a process with 0, we signal that it is ready to be initialized
-            activeProcesses[i] = 0;
+            activeProcesses[i] = PROCESS_READY;
         }
         // In case the process has not been initialized yet, we do it
-        if (activeProcesses[i] == 0) {
+        if (activeProcesses[i] == PROCESS_READY) {
+            // Saves PID as the PID of process i
             activeProcesses[i] = startProcess();
         }
         // In case the process is already initialized and is currently paused, we run it for the quantum burst
-        if (activeProcesses[i] > 0) {
+        if (activeProcesses[i] > PROCESS_READY) {
             // In case the process has less time to run than the given quantum, and we set the flag to kill it
             if (quantum >= burstArr[i]) {
                 burst = burstArr[i];
@@ -389,7 +376,7 @@ int singleRoundRobin(Process *pArray, int *arrivalArr, int *burstArr, pid_t *act
             if (finishedFlag == 1) {
                 kill(activeProcesses[i], SIGKILL);
                 finished++;
-                activeProcesses[i] = -1;
+                activeProcesses[i] = PROCESS_FINISHED;
                 arrivalArr[i] = INT_MAX;
             }
         }
@@ -411,8 +398,8 @@ void roundRobin(Process array[MAX_DESCRIPTION], int processNum, int quantum) {
     for (int i = 0; i < processNum; ++i) {
         arrivalArr[i] = array[i].arrival;
         burstArr[i] = array[i].burst;
-        // An array that will be filled with the processes' PID, -1 means uninitialized and not ready
-        activeProcesses[i] = -1;
+        // An array that will be filled with the processes' PID
+        activeProcesses[i] = PROCESS_EXPECTED;
     }
     while (unfinishedProc > 0) {
         unfinishedProc -= singleRoundRobin(array, arrivalArr, burstArr,
@@ -427,11 +414,6 @@ int readCSV(FILE** csvFile, Process array[MAX_DESCRIPTION]) {
     char line[MAX_LINE_LENGTH];
     char *token;
     int i = 0;
-
-    // Getting rid of the first two lines since they're useless
-    //TODO: DELETE THOSE TWO LINES LATER, THEY'RE THERE ONLY FOR TESTING
-    //fgets(line, sizeof(line), *csvFile);
-    //fgets(line, sizeof(line), *csvFile);
 
     // Setting the process array
     while (fgets(line, sizeof(line), *csvFile) != NULL) {
